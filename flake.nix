@@ -26,9 +26,17 @@
         };
 
         devShells.default = pkgs.mkShell {
-          packages = [ pythonEnv ];
+          packages = [
+            pythonEnv
+            pkgs.foundry      # forge, cast, anvil, chisel
+            pkgs.solc         # Solidity compiler
+            pkgs.slither-analyzer  # static analysis
+          ];
           shellHook = ''
-            echo "contract-review dev shell — run: python orchestrator.py --contract <path>"
+            echo "contract-review dev shell"
+            echo "  python orchestrator.py --contract <path>"
+            echo "  forge build / forge test / anvil"
+            echo "  slither <contract.sol>"
           '';
         };
       }
