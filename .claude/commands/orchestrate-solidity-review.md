@@ -1,0 +1,53 @@
+Arguments: `<contract_path> [<spec_path>]`
+
+Parse `$ARGUMENTS`: the first token is the contract path, the optional second token is a spec path.
+
+Run a full multi-domain review of the contract. Work through each domain sequentially, reading the contract (and spec if provided) fresh for each pass so no domain bleeds into another's scope.
+
+**Domain order and scope:**
+
+1. **Security** — reentrancy, overflow, access control, state management, delegatecall
+2. **Efficiency** — storage layout, loop costs, calldata vs memory, redundant ops
+3. **Logic** — algorithm correctness, edge cases, invariants, rounding, state machines
+4. **Best Practices** — naming, error handling, events, NatSpec, compiler hygiene
+5. **Spec Compliance** — only if a spec path was provided; skip otherwise
+
+For each domain, try the relevant static tool via Bash before analyzing:
+- Domains 1, 2, 4: `slither <contract_path>`
+- Domain 3: `solc --ast-compact-json <contract_path> 2>&1`
+- If a tool is unavailable, proceed without it.
+
+After completing all domains, consolidate: deduplicate findings that appeared in multiple domains (keep the highest severity instance), sort by severity (CRITICAL → HIGH → MEDIUM → LOW → INFO), and tag each with its source domain.
+
+Then write a JSON report to `reports/` using this schema:
+```json
+{
+  "contract": "<basename>",
+  "spec": "<basename or null>",
+  "generated_at": "<ISO 8601 UTC>",
+  "requires_human_review": <true if any CRITICAL or HIGH>,
+  "summary": { "CRITICAL": n, "HIGH": n, "MEDIUM": n, "LOW": n },
+  "findings": [
+    {
+      "domain": "security|efficiency|logic|practices|compliance",
+      "severity": "CRITICAL|HIGH|MEDIUM|LOW|INFO",
+      "title": "...",
+      "location": "...",
+      "description": "...",
+      "fix": "..."
+    }
+  ]
+}
+```
+
+Name the file `reports/<contract_basename>_<YYYYMMDDTHHMMSSz>.json`.
+
+Finally, display a concise summary in the conversation:
+
+## Review Complete: `<contract filename>`
+
+**Findings by severity**: X CRITICAL · Y HIGH · Z MEDIUM · W LOW
+**Requires human review**: yes/no
+**Report written to**: `reports/<filename>`
+
+Then list findings grouped by severity, each as a one-liner: `[DOMAIN] title — location`.
