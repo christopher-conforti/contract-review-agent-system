@@ -2,6 +2,22 @@ Arguments: `<contract_path> [<spec_path>]`
 
 Parse `$ARGUMENTS`: the first token is the contract path, the optional second token is a spec path.
 
+Before analysis, detect which EIP standards the contract likely implements by scanning for characteristic identifiers:
+- EIP-20: `transfer`, `approve`, `transferFrom`, `balanceOf`, `allowance` → EIP number 20
+- EIP-721: `ownerOf`, `safeTransferFrom`, `tokenURI`, `getApproved` → EIP number 721
+- EIP-1155: `safeTransferFrom` with `uint256 id` and `uint256 amount` → EIP number 1155
+- EIP-4626: `deposit`, `withdraw`, `convertToShares`, `convertToAssets` → EIP number 4626
+- EIP-1967: `delegatecall` with fixed storage slots → EIP number 1967
+
+For each detected EIP, lazy-fetch and cache the authoritative spec via Bash:
+```bash
+EIP=<number>
+CACHE="eip_cache/eip-${EIP}.md"
+[ -f "$CACHE" ] || curl -sf "https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-${EIP}.md" -o "$CACHE"
+cat "$CACHE"
+```
+Use cached EIP text to ground findings — especially in the Logic and Spec Compliance domains — with references to the authoritative standard. If fetching fails, proceed without it.
+
 Run a full multi-domain review of the contract. Work through each domain sequentially, reading the contract (and spec if provided) fresh for each pass so no domain bleeds into another's scope.
 
 **Domain order and scope:**
