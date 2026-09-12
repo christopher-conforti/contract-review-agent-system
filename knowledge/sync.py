@@ -89,7 +89,7 @@ def sync_swc() -> None:
     print(f"      README: {result}")
 
     for n in range(100, 137):
-        result = save(f"{base}/entries/SWC-{n}.md", swc_dir / f"SWC-{n}.md")
+        result = save(f"{base}/entries/docs/SWC-{n}.md", swc_dir / f"SWC-{n}.md")
         if result != "cached":
             print(f"      SWC-{n}: {result}")
 
