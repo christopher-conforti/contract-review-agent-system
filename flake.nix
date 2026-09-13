@@ -1,5 +1,5 @@
 {
-  description = "Multi-agent smart contract review system";
+  description = "Solidity contract review via Claude Code skills";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -10,31 +10,18 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        pythonEnv = pkgs.python3.withPackages (ps: [ ps.anthropic ]);
       in {
-        packages.default = pkgs.writeShellApplication {
-          name = "contract-review";
-          runtimeInputs = [ pythonEnv ];
-          text = ''
-            exec python "${self}/orchestrator.py" "$@"
-          '';
-        };
-
-        apps.default = {
-          type = "app";
-          program = "${self.packages.${system}.default}/bin/contract-review";
-        };
-
         devShells.default = pkgs.mkShell {
           packages = [
-            pythonEnv
-            pkgs.foundry      # forge, cast, anvil, chisel
-            pkgs.solc         # Solidity compiler
-            pkgs.slither-analyzer  # static analysis
+            pkgs.python3            # knowledge/sync.py (stdlib only)
+            pkgs.foundry            # forge, cast, anvil, chisel
+            pkgs.solc               # Solidity compiler
+            pkgs.slither-analyzer   # static analysis
           ];
           shellHook = ''
             echo "contract-review dev shell"
-            echo "  python orchestrator.py --contract <path>"
+            echo "  /sync-knowledge          populate knowledge/ from EIPs, SWC, Solidity docs"
+            echo "  /orchestrate-solidity-review <contract> [spec]"
             echo "  forge build / forge test / anvil"
             echo "  slither <contract.sol>"
           '';
