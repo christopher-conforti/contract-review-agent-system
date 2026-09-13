@@ -2,51 +2,57 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Running the system
+## Primary implementation: Claude Code skills
 
-```bash
-export ANTHROPIC_API_KEY=<your-key>
-pip install -r requirements.txt
+The skills in `.claude/commands/` are the primary implementation. They run directly inside Claude Code — no API key or subprocess required.
 
-# Without spec
-python orchestrator.py --contract test_contracts/vulnerable.sol
+| Skill | Purpose |
+|---|---|
+| `/orchestrate-solidity-review <contract> [spec]` | Full pipeline: all domains → JSON report → email |
+| `/analyze-security <contract>` | Reentrancy, overflow, access control, delegatecall |
+| `/analyze-efficiency <contract>` | Gas, storage packing, loop costs |
+| `/analyze-logic <contract>` | Correctness, invariants, edge cases |
+| `/analyze-practices <contract>` | Naming, events, NatSpec, compiler hygiene |
+| `/analyze-compliance <contract> <spec>` | Spec deviation against a formal spec |
+| `/sync-knowledge` | Populate `knowledge/` from EIP repo, SWC registry, Solidity docs |
 
-# With spec
-python orchestrator.py --contract test_contracts/simple_erc20.sol --spec test_contracts/specs/erc20_spec.md
-```
+### Knowledge base
 
-Reports are written to `reports/<contract_name>_<timestamp>.json`.
+Before analyzing, skills consult `knowledge/` for authoritative reference material:
+- `knowledge/eips/` — all Final EIPs (fetched from ethereum/EIPs)
+- `knowledge/swc/` — SWC-100 through SWC-136 weakness entries
+- `knowledge/solidity/` — security-considerations, common-patterns, units-and-global-variables, known-bugs
 
-## Architecture
+Run `/sync-knowledge` once to populate. Re-run to pick up new upstream content. `knowledge/` content is gitignored; directory structure is tracked via `.gitkeep` files.
 
-The orchestrator (`orchestrator.py`) is the entry point. It reads a `.sol` file (and optional spec), calls five specialized agents sequentially, consolidates their findings, and writes a unified JSON report.
+### Reports
 
-Each agent in `agents/` follows the same pattern:
-- A scoped `SYSTEM_PROMPT` that constrains the agent to a single concern and demands pure JSON output
-- A single `analyze(contract_code, ...)` function that calls the Anthropic API and returns a parsed dict with shape `{"agent": "<name>", "findings": [...]}`
-- JSON parse errors surface as an `"error"` key instead of raising, so the orchestrator can continue
+`/orchestrate-solidity-review` writes JSON to `reports/<contract_basename>_<YYYYMMDDTHHMMSSz>.json` and self-sends an email summary via MoltMail.
 
-The `spec_compliance` agent is the only one with a different signature — it takes `(contract_code, spec)` and is only invoked when `--spec` is provided.
-
-The orchestrator's `consolidate()` function merges all agent results, tags each finding with its source agent, sorts by severity (`CRITICAL → HIGH → MEDIUM → LOW`), and sets `requires_human_review: true` when any CRITICAL or HIGH findings exist.
-
-## Agent output contract
-
-Every agent must return:
+Report schema:
 ```json
 {
-  "agent": "<agent_name>",
-  "findings": [
-    {
-      "severity": "CRITICAL | HIGH | MEDIUM | LOW",
-      ...agent-specific fields...
-    }
-  ]
+  "contract": "...", "spec": "...|null",
+  "generated_at": "<ISO 8601 UTC>",
+  "requires_human_review": true,
+  "summary": { "CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0 },
+  "findings": [{
+    "domain": "security|efficiency|logic|practices|compliance",
+    "severity": "CRITICAL|HIGH|MEDIUM|LOW|INFO",
+    "title": "...", "swc": "SWC-NNN|null", "eip_reference": "EIP-N §...|null",
+    "location": "...", "description": "...", "fix": "..."
+  }]
 }
 ```
 
-Adding a new agent: implement `analyze()` returning the above shape, then register it in `orchestrator.py`'s `run_agents()`.
+## Legacy Python orchestrator
 
-## Config
+`orchestrator.py` and `agents/` contain a Python implementation that calls the Anthropic API directly. It requires `ANTHROPIC_API_KEY` and `pip install -r requirements.txt`. It is retained for reference but the skills are preferred.
 
-`config.py` reads `ANTHROPIC_API_KEY` from the environment. `MODEL` and `MAX_TOKENS` are set there and shared by all agents — change them in one place.
+## Nix dev shell
+
+```bash
+nix develop   # Python + anthropic, foundry (forge/cast/anvil), solc, slither-analyzer
+```
+
+Skills automatically try `slither` and `solc` via Bash before each analysis pass and degrade gracefully when not on PATH.
