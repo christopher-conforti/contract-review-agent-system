@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 .env
+eip_cache/*.md
+knowledge/eips/*.md
+knowledge/swc/*.md
+knowledge/solidity/
