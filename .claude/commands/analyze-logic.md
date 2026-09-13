@@ -8,11 +8,15 @@ Focus areas:
 - **State machine**: are all state transitions valid? Are invalid transitions blocked?
 - **Preconditions**: are inputs validated before use?
 
-**Consult the knowledge base before analyzing:**
-Run `ls knowledge/eips/ knowledge/solidity/ 2>/dev/null` to check availability.
-- Detect which EIP standard this contract implements (EIP-20: transfer/approve/balanceOf; EIP-721: ownerOf/tokenURI; EIP-1155: safeTransferFrom+id+amount; EIP-4626: deposit/withdraw/convertToShares; EIP-1967: delegatecall+fixed slot). Read `knowledge/eips/eip-{N}.md` for detected standards — the EIP is the authoritative definition of correct logic; deviations are findings.
-- If `knowledge/solidity/known-bugs.json` exists, read it and cross-check for compiler bugs that affect the contract's pragma version and could cause incorrect logic.
-- If `knowledge/` is absent or empty, note it and proceed — run `/sync-knowledge` to populate.
+**Consult the global knowledge base before analyzing:**
+Run `ls ~/.claude/knowledge/eips/ ~/.claude/knowledge/solidity/ 2>/dev/null | head -3` to check availability.
+If `~/.claude/knowledge/` is empty or absent, auto-populate it first:
+```bash
+python3 ~/.claude/knowledge/sync.py
+```
+Then:
+- Detect which EIP standard this contract implements (EIP-20: transfer/approve/balanceOf; EIP-721: ownerOf/tokenURI; EIP-1155: safeTransferFrom+id+amount; EIP-4626: deposit/withdraw/convertToShares; EIP-1967: delegatecall+fixed slot). Read `~/.claude/knowledge/eips/eip-{N}.md` for detected standards — the EIP is the authoritative definition of correct logic; deviations are findings.
+- Read `~/.claude/knowledge/solidity/known-bugs.json` and cross-check for compiler bugs that affect the contract's pragma version and could cause incorrect logic.
 
 Try running `solc --ast-compact-json $ARGUMENTS 2>&1` via Bash to check for compilation errors that reveal logic issues. If solc is unavailable, proceed without it.
 

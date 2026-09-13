@@ -20,7 +20,7 @@
           ];
           shellHook = ''
             echo "contract-review dev shell"
-            echo "  /sync-knowledge          populate knowledge/ from EIPs, SWC, Solidity docs"
+            echo "  /sync-knowledge          populate ~/.claude/knowledge/ from EIPs, SWC, Solidity docs"
             echo "  /orchestrate-solidity-review <contract> [spec]"
             echo "  forge build / forge test / anvil"
             echo "  slither <contract.sol>"

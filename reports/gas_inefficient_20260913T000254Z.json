@@ -1,0 +1,114 @@
+{
+  "contract": "gas_inefficient.sol",
+  "spec": null,
+  "generated_at": "2026-09-13T00:02:54Z",
+  "requires_human_review": true,
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 4,
+    "MEDIUM": 3,
+    "LOW": 3
+  },
+  "findings": [
+    {
+      "domain": "security",
+      "severity": "HIGH",
+      "title": "deactivateAll() unbounded loop — block gas limit DoS",
+      "swc": "SWC-128",
+      "eip_reference": null,
+      "location": "deactivateAll() — line 33",
+      "description": "The loop iterates over the entire entries array performing state mutations. As entries grows, gas cost grows linearly. Once large enough, no transaction can supply sufficient gas to execute the function, permanently bricking it. Any caller can trigger addEntry() to accelerate growth.",
+      "fix": "Redesign to use pagination (process a bounded batch per call) or replace the loop with a flag-based approach (e.g. a global deactivation epoch) that avoids iterating the full array."
+    },
+    {
+      "domain": "efficiency",
+      "severity": "HIGH",
+      "title": "totalActive SSTORE on every loop iteration",
+      "swc": null,
+      "eip_reference": null,
+      "location": "deactivateAll() — line 36",
+      "description": "totalActive -= 1 issues an SSTORE (cold: 20,000 gas, warm: 100 gas) for every active entry found. With n active entries this costs O(n) SSTOREs instead of one.",
+      "fix": "Accumulate a local uint256 deactivated counter inside the loop and apply totalActive -= deactivated once after the loop exits."
+    },
+    {
+      "domain": "efficiency",
+      "severity": "HIGH",
+      "title": "Entry struct not packed — bool between two uint256s forces 4 storage slots",
+      "swc": null,
+      "eip_reference": null,
+      "location": "struct Entry — lines 10-14",
+      "description": "Layout: uint256 id (slot 0) / bool active (slot 1, wastes 31 bytes) / uint256 createdAt (slot 2) / address owner (slot 3). Each Entry costs 4 SLOADs to read fully. Reordering to pack bool + address into one slot reduces to 3 slots per entry — a 25% reduction in storage I/O across all array operations.",
+      "fix": "Reorder fields: uint256 id; uint256 createdAt; address owner; bool active; — owner (20 bytes) and active (1 byte) share slot 2."
+    },
+    {
+      "domain": "efficiency",
+      "severity": "HIGH",
+      "title": "entries.length read from storage on every loop iteration",
+      "swc": null,
+      "eip_reference": null,
+      "location": "deactivateAll() line 33, countActiveForOwner() line 44",
+      "description": "entries.length is a dynamic array length stored in the array's base slot. Each read is an SLOAD. Both loops re-read it on every iteration instead of caching it before the loop.",
+      "fix": "Add uint256 len = entries.length; before each loop and use len as the loop bound."
+    },
+    {
+      "domain": "security",
+      "severity": "MEDIUM",
+      "title": "countActiveForOwner() unbounded view loop — runtime out-of-gas",
+      "swc": "SWC-128",
+      "eip_reference": null,
+      "location": "countActiveForOwner() — line 44",
+      "description": "View functions are not protected from out-of-gas reverts. As entries grows, off-chain calls and on-chain integrations that call this function will begin reverting unpredictably. Not a state-corruption risk but a liveness failure for any consumer of this function.",
+      "fix": "Accept a (uint256 offset, uint256 limit) pagination window so callers can read in bounded chunks."
+    },
+    {
+      "domain": "practices",
+      "severity": "MEDIUM",
+      "title": "No events on state-changing functions",
+      "swc": null,
+      "eip_reference": null,
+      "location": "addEntry(), deactivateAll()",
+      "description": "Neither addEntry nor deactivateAll emits events. External indexers, UIs, and monitoring tools cannot observe state changes without replaying all transactions.",
+      "fix": "Define and emit EntryAdded(uint256 indexed id, address indexed owner) in addEntry and EntryDeactivated(uint256 indexed id) (or a batch event) in deactivateAll."
+    },
+    {
+      "domain": "logic",
+      "severity": "MEDIUM",
+      "title": "totalActive is manually maintained derived state — invariant brittle",
+      "swc": null,
+      "eip_reference": null,
+      "location": "totalActive — state variable; addEntry(), deactivateAll()",
+      "description": "totalActive must always equal count(entries[i].active == true). This invariant is maintained correctly in current code, but any future function that sets entries[i].active without updating totalActive will silently corrupt it. The state is redundant and fragile.",
+      "fix": "Either remove totalActive and compute it on demand (acceptable if the array stays small), or add an internal _setActive(uint256 id, bool value) helper that updates both fields atomically so the invariant cannot be violated by new code."
+    },
+    {
+      "domain": "security",
+      "severity": "LOW",
+      "title": "No access control on addEntry() or deactivateAll()",
+      "swc": null,
+      "eip_reference": null,
+      "location": "addEntry(), deactivateAll()",
+      "description": "Any address can add entries (accelerating the DoS vector) or deactivate all entries. Likely intentional for this test contract but would be a critical flaw in production.",
+      "fix": "Add an onlyOwner modifier or role-based access control gating at minimum deactivateAll()."
+    },
+    {
+      "domain": "practices",
+      "severity": "LOW",
+      "title": "Floating pragma ^0.8.20",
+      "swc": null,
+      "eip_reference": null,
+      "location": "pragma solidity ^0.8.20 — line 2",
+      "description": "The caret allows compilation with any 0.8.x release from 0.8.20 onward. Slither flags three known severe issues in the 0.8.20 range (VerbatimInvalidDeduplication, FullInlinerNonExpressionSplitArgumentEvaluationOrder, MissingSideEffectsOnSelectorAccess), none of which affect this specific contract but illustrate why pinning matters.",
+      "fix": "Pin to a specific version, e.g. pragma solidity 0.8.20; or upgrade to a patched release."
+    },
+    {
+      "domain": "practices",
+      "severity": "LOW",
+      "title": "Incomplete NatSpec — addEntry undocumented",
+      "swc": null,
+      "eip_reference": null,
+      "location": "addEntry()",
+      "description": "addEntry has no NatSpec whatsoever. deactivateAll and countActiveForOwner have @dev comments but no @notice or @param. Contract-level @title and @notice are present.",
+      "fix": "Add /// @notice, @param, and @return NatSpec to all external functions."
+    }
+  ]
+}

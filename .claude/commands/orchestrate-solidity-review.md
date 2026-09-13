@@ -2,20 +2,23 @@ Arguments: `<contract_path> [<spec_path>]`
 
 Parse `$ARGUMENTS`: the first token is the contract path, the optional second token is a spec path.
 
-**Consult the knowledge base before analyzing:**
-Run `ls knowledge/eips/ knowledge/swc/ knowledge/solidity/ 2>/dev/null` to check availability.
-If `knowledge/` is populated:
-- Scan the contract for EIP standard identifiers and read matching `knowledge/eips/eip-{N}.md` files:
+**Consult the global knowledge base before analyzing:**
+Run `ls ~/.claude/knowledge/eips/ 2>/dev/null | wc -l` to check if the knowledge base is populated.
+If the count is 0 or the command errors, auto-populate it now:
+```bash
+python3 ~/.claude/knowledge/sync.py
+```
+Once populated:
+- Scan the contract for EIP standard identifiers and read matching `~/.claude/knowledge/eips/eip-{N}.md` files:
   - EIP-20: `transfer`, `approve`, `transferFrom`, `balanceOf`, `allowance`
   - EIP-721: `ownerOf`, `safeTransferFrom`, `tokenURI`, `getApproved`
   - EIP-1155: `safeTransferFrom` with `id` and `amount` params
   - EIP-4626: `deposit`, `withdraw`, `convertToShares`, `convertToAssets`
   - EIP-1967: `delegatecall` with fixed storage slots
-- Read `knowledge/swc/README.md` for the weakness index; read specific SWC entries as relevant during the Security domain pass.
-- Read `knowledge/solidity/security-considerations.rst` and `knowledge/solidity/known-bugs.json` during Security and Logic passes.
-- Read `knowledge/solidity/common-patterns.rst` during the Best Practices pass.
+- Read `~/.claude/knowledge/swc/README.md` for the weakness index; read specific SWC entries as relevant during the Security domain pass.
+- Read `~/.claude/knowledge/solidity/security-considerations.rst` and `~/.claude/knowledge/solidity/known-bugs.json` during Security and Logic passes.
+- Read `~/.claude/knowledge/solidity/common-patterns.rst` during the Best Practices pass.
 - Use all cached material as primary authority. Cite EIP sections and SWC IDs in findings.
-If `knowledge/` is absent or empty, note it once and proceed — run `/sync-knowledge` to populate.
 
 Run a full multi-domain review of the contract. Work through each domain sequentially, reading the contract (and spec if provided) fresh for each pass so no domain bleeds into another's scope.
 

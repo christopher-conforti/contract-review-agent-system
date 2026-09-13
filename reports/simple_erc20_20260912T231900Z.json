@@ -1,0 +1,46 @@
+{
+  "contract": "simple_erc20.sol",
+  "spec": "erc20_spec.md",
+  "generated_at": "2026-09-12T23:19:00Z",
+  "requires_human_review": false,
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 1,
+    "LOW": 3
+  },
+  "findings": [
+    {
+      "domain": "practices",
+      "severity": "MEDIUM",
+      "title": "String revert messages instead of custom errors",
+      "location": "transfer(), approve(), transferFrom()",
+      "description": "All three functions use require() with string literals for error messages. Custom errors (EIP-838) cost less gas at revert time and allow typed error decoding by callers.",
+      "fix": "Define custom errors (e.g. `error InsufficientBalance()`, `error InsufficientAllowance()`, `error ZeroAddress()`) and replace require() calls with `if (...) revert CustomError()`."
+    },
+    {
+      "domain": "security",
+      "severity": "LOW",
+      "title": "approve() does not reject zero-address spender",
+      "location": "approve(address spender, uint256 amount)",
+      "description": "EIP-20 recommends reverting when spender is the zero address. While harmless in this contract (no burn path exists), approving address(0) produces an unreachable allowance entry and could interact unexpectedly if burn functionality is added later.",
+      "fix": "Add `require(spender != address(0), \"approve to zero address\");` (or custom error equivalent) as the first line of approve()."
+    },
+    {
+      "domain": "practices",
+      "severity": "LOW",
+      "title": "Floating pragma",
+      "location": "pragma solidity ^0.8.20 (line 3)",
+      "description": "The caret prefix allows compilation with any 0.8.x release from 0.8.20 onwards. Compiler behaviour differences between patch versions can introduce subtle bugs in deployed contracts.",
+      "fix": "Pin to a specific version, e.g. `pragma solidity 0.8.20;`."
+    },
+    {
+      "domain": "practices",
+      "severity": "LOW",
+      "title": "Missing NatSpec @param and @return on all functions",
+      "location": "transfer(), approve(), transferFrom()",
+      "description": "The contract has contract-level @title and @notice but no per-function @param or @return tags. Tools (Etherscan, IDEs, documentation generators) rely on these for human-readable ABI documentation.",
+      "fix": "Add NatSpec blocks above each external function documenting each parameter and the return value."
+    }
+  ]
+}

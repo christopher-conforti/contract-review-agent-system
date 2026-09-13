@@ -18,12 +18,12 @@ All analysis runs as Claude Code skills — no API key or subprocess required.
 
 ## Knowledge base
 
-Skills consult `knowledge/` for authoritative reference material before analyzing:
-- `knowledge/eips/` — all Final EIPs
-- `knowledge/swc/` — SWC-100 through SWC-136
-- `knowledge/solidity/` — security-considerations, common-patterns, units-and-global-variables, known-bugs
+Skills consult `~/.claude/knowledge/` for authoritative reference material before analyzing:
+- `~/.claude/knowledge/eips/` — all Final EIPs
+- `~/.claude/knowledge/swc/` — SWC-100 through SWC-136
+- `~/.claude/knowledge/solidity/` — security-considerations, common-patterns, units-and-global-variables, known-bugs
 
-Run `/sync-knowledge` once to populate. `knowledge/` content is gitignored; directory structure is tracked via `.gitkeep` files.
+The knowledge base is global — shared across all projects. Skills auto-populate it on first use. Run `/sync-knowledge` to refresh explicitly, or `python3 knowledge/sync.py --force` to re-download everything.
 
 ## Report schema
 

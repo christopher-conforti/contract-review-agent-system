@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Sync knowledge base: finalized EIPs, SWC registry, Solidity security docs.
+"""Sync global knowledge base: finalized EIPs, SWC registry, Solidity security docs.
+
+Writes to ~/.claude/knowledge/{eips,swc,solidity}/ — shared across all projects.
 
 Usage:
     python3 knowledge/sync.py          # skip already-cached files
@@ -11,7 +13,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).parent
+ROOT = Path.home() / ".claude" / "knowledge"
 FORCE = "--force" in sys.argv
 HEADERS = {"User-Agent": "contract-review-kb/1.0"}
 
@@ -40,7 +42,7 @@ def save(url: str, dest: Path, keep_if: callable = None) -> str:
 
 def sync_eips() -> None:
     eip_dir = ROOT / "eips"
-    eip_dir.mkdir(exist_ok=True)
+    eip_dir.mkdir(parents=True, exist_ok=True)
 
     print("EIPs  fetching file list…")
     try:
@@ -81,7 +83,7 @@ def sync_eips() -> None:
 
 def sync_swc() -> None:
     swc_dir = ROOT / "swc"
-    swc_dir.mkdir(exist_ok=True)
+    swc_dir.mkdir(parents=True, exist_ok=True)
     base = "https://raw.githubusercontent.com/SmartContractSecurity/SWC-registry/master"
 
     print("SWC   syncing registry…")
@@ -100,7 +102,7 @@ def sync_swc() -> None:
 
 def sync_solidity() -> None:
     sol_dir = ROOT / "solidity"
-    sol_dir.mkdir(exist_ok=True)
+    sol_dir.mkdir(parents=True, exist_ok=True)
     base = "https://raw.githubusercontent.com/ethereum/solidity/develop/docs"
 
     docs = [
